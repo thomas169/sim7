@@ -42,6 +42,7 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
     
     methods
         function obj = sim7(varargin)
+            warning('OFF','SystemBlock:MATLABSystem:ParameterCannotBeDependent');
             setProperties(obj,nargin,varargin{:})
         end
         
@@ -410,7 +411,6 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
             read = matlab.system.display.SectionGroup('Title','Read',...
                 'PropertyList',{'readDB', 'readPos','readSize'});
             group = [block plc write read];
-            
         end
         
         function flag = showSimulateUsingImpl
