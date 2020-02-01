@@ -3,7 +3,7 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
         matlab.system.mixin.CustomIcon & matlab.system.mixin.Propagates 
 
     properties (Nontunable)
-        ts = 1e-3; % Sample Time (s)
+        ts = 10e-3; % Sample Time (s)
         plcIP = '0.0.0.0'; % IP Address
         plcRack = 0; % Rack
         plcSlot = 1; % Slot
@@ -42,7 +42,10 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
     
     methods
         function obj = sim7(varargin)
-            warning('OFF','SystemBlock:MATLABSystem:ParameterCannotBeDependent');
+            if coder.target('MATLAB')
+                warnId = 'SystemBlock:MATLABSystem:ParameterCannotBeDependent';
+                warning('OFF',warnId);
+            end
             setProperties(obj,nargin,varargin{:})
         end
         
@@ -83,8 +86,28 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
         end
     end
     
-    methods (Access = private)
+    methods(Static)
         
+        function bName = getDescriptiveName(~)
+            bName = 'libsnap7';
+        end
+
+        function tf = isSupportedContext(~)
+            tf = true;
+        end
+        
+        function updateBuildInfo(buildInfo, buildConfig)
+            [~, ~, libExt, ~] = buildConfig.getStdLibInfo();
+            libName = ['libsnap7' libExt];
+            libPath = '/usr/lib/'; % **** CHANGE LIBPATH AS NEEDED ****
+            if exist([libPath libName], 'file') ~= 2
+                error('Library missing')
+            end
+            buildInfo.addLinkObjects(libName,libPath,'',true,true,'');
+        end
+    end
+    
+    methods (Access = private)
         function value = lastError(obj)
             obj.libMustBe('Loaded');
             obj.connMustBe('Connected');
@@ -186,27 +209,6 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
             end
         end
     end
-    
-    methods(Static)
-        
-        function bName = getDescriptiveName(~)
-            bName = 'libsnap7';
-        end
-
-        function tf = isSupportedContext(~)
-            tf = true;
-        end
-        
-        function updateBuildInfo(buildInfo, buildConfig)
-            [~, ~, libExt, ~] = buildConfig.getStdLibInfo();
-            libName = ['libsnap7' libExt];
-            libPath = '/usr/lib/'; % **** CHANGE LIBPATH AS NEEDED ****
-            if exist([libPath libName], 'file') ~= 2
-                error('Library missing')
-            end
-            buildInfo.addLinkObjects(libName,libPath,'',true,true,'');
-        end
-    end
 
     methods(Access = protected)
         
@@ -278,7 +280,9 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
                    obj.status = 'Connected';
                 end
             else
-                obj.connect();
+                if ~obj.isInMATLABSystemBlock
+                    obj.connect();
+                end
             end
         end
 
@@ -288,7 +292,9 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
                 coder.ceval('Cli_Destroy', coder.ref(obj.s7Ptr));
                 obj.status = 'Unconnected';
             elseif strcmp(obj.status,'Connected')
-               obj.disconnect() 
+                if ~obj.isInMATLABSystemBlock
+                    obj.disconnect() 
+                end
             end
         end
         
