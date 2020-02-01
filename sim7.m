@@ -20,24 +20,21 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
         loaded = 'Unloaded' % Library
     end
     
-    properties (Constant, Hidden)
+    properties (Hidden, Constant)
         lib = 'libsnap7';
         include = '/usr/include/'
         header = 'snap7.h'
         areaDB = int32(132);
         wordDB = int32(2);
-        port = int32(102)
+        port = int32(102);
+        errStrLen = 64;
+        statusSet = matlab.system.StringSet({'Unconnected','Connected'});
+        loadedSet = matlab.system.StringSet({'Unloaded','Loaded'});
     end
     
     properties (Access = private)
         s7Ptr;
         res;
-    end
-    
-    properties (Hidden, Constant)
-        statusSet = matlab.system.StringSet({'Unconnected','Connected'});
-        loadedSet = matlab.system.StringSet({'Unloaded','Loaded'});
-        errStrLen = 64;
     end
     
     methods
@@ -137,14 +134,14 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
         end
         
         function connMustBe(obj,varargin)
-             if nargin == 1
+            if nargin == 1
                test = 'Unconnected';
             else
                test = varargin{1};
-             end
-             if ~strcmp(obj.get.status,test)
-                 error(['Snap7 is ' upper(test) ' check failed'])
-             end
+            end
+            if ~strcmp(obj.get.status,test)
+                error(['Snap7 is ' upper(test) ' check failed'])
+            end
         end
         
         function connect(obj)
@@ -213,7 +210,7 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
     methods(Access = protected)
         
         function varargout = stepImpl(obj,varargin)
-            % libnodave step get inputs -> write to plc / read plc -> set
+            % snap7 step get inputs -> write to plc / read plc -> set
             % to the outputs.
             
             if coder.target('MATLAB')
@@ -258,31 +255,23 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
                 varargout{n} = snap7Data(1:obj.readSize(n));
             end
             
-            
         end
 
         function setupImpl(obj)
             % Perform one-time calculations, such as computing constants
-            obj.res = int32(0);
             
-            % For open socket
-            addr = [obj.plcIP char(0)];
-
-            % For the daveConenction
-            rack = int32(obj.plcRack);
-            slot = int32(obj.plcSlot);
-            
-            % Open a socket and initalise a new interface / connection
             if ~coder.target('MATLAB')
+                obj.res = int32(0);
+                addr = [obj.plcIP char(0)];
+                rack = int32(obj.plcRack);
+                slot = int32(obj.plcSlot);
                 obj.s7Ptr = coder.opaque('S7Object', 'Cli_Create()','HeaderFile',obj.header);
                 obj.res = coder.ceval('Cli_ConnectTo',obj.s7Ptr, addr, rack, slot);
                 if obj.res == 0 
                    obj.status = 'Connected';
                 end
-            else
-                if ~obj.isInMATLABSystemBlock
-                    obj.connect();
-                end
+            elseif ~obj.isInMATLABSystemBlock
+                obj.connect();
             end
         end
 
@@ -291,10 +280,8 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
             if ~coder.target('MATLAB')
                 coder.ceval('Cli_Destroy', coder.ref(obj.s7Ptr));
                 obj.status = 'Unconnected';
-            elseif strcmp(obj.status,'Connected')
-                if ~obj.isInMATLABSystemBlock
-                    obj.disconnect() 
-                end
+            elseif ~obj.isInMATLABSystemBlock
+                obj.disconnect();
             end
         end
         

@@ -32,7 +32,7 @@ A MATLAB example is given below:
     [y1, y2] = conn.step(u1,u2);
     conn.release();
 
-A simulink model is included in the tests folder to demonstrate operation within Simulink. The models compiles via RTW for a standalone executable.
+A simulink [model](./tests/test7.slx) is included in the [tests](./tests/) folder to demonstrate operation within Simulink. The models compiles via RTW for a standalone executable.
 
 ## Notes
 
