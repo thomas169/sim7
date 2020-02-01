@@ -40,4 +40,6 @@ More features are available via S-Functions but system objects are (relatively) 
 
 ## Links
 
+[![View sim7 on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/74090-sim7)
+
 [snap7](http://snap7.sourceforge.net/)
