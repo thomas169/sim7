@@ -37,3 +37,7 @@ A simulink [model](./tests/test7.slx) is included in the [tests](./tests/) folde
 ## Notes
 
 More features are available via S-Functions but system objects are (relatively) quick and easy. Plus they work in MATLAB and don't need TLC for codegen.
+
+## Links
+
+[snap7](http://snap7.sourceforge.net/)
