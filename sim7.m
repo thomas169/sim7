@@ -76,7 +76,17 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
         
         function value = get.status(obj)
             if obj.s7Ptr > 0
-                value = 'Connected';
+                if coder.target('MATLAB')
+                    isConnected = libpointer('int32Ptr',0);
+                    calllib(obj.lib,'Cli_GetConnected', obj.s7Ptr, isConnected);
+                    if (isConnected.Value == 0)
+                        value = 'Unconnected';
+                    else
+                        value = 'Connected';
+                    end
+                else 
+                    value = 'Connected';
+                end
             else
                 value = 'Unconnected';
             end
@@ -96,7 +106,7 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
         function updateBuildInfo(buildInfo, buildConfig)
             [~, ~, libExt, ~] = buildConfig.getStdLibInfo();
             libName = ['libsnap7' libExt];
-            libPath = '/usr/lib/'; % **** CHANGE LIBPATH AS NEEDED ****
+            libPath = '/usr/local/lib/'; % **** CHANGE LIBPATH AS NEEDED ****
             if exist([libPath libName], 'file') ~= 2
                 error('Library missing')
             end
@@ -148,26 +158,31 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
         function create(obj)
             % connect standalone code
             obj.libMustBe('Loaded');
-            obj.connMustBe('Unconnected');
             
-            obj.s7Ptr = calllib(obj.lib,'Cli_Create');
-            
-            if ~(obj.s7Ptr > 0)
-                error('Could not create s7 object!')
+            if strcmp(obj.status, 'Unconnected')
+                obj.s7Ptr = calllib(obj.lib,'Cli_Create');
+
+                if ~(obj.s7Ptr > 0)
+                    error('Could not create s7 object!')
+                end
+            else
+                disp('Already connected');
             end
         end
         
         function connect(obj)
             % connect standalone code
             obj.libMustBe('Loaded');
-            obj.connMustBe('Unconnected');
             
-            obj.res = calllib(obj.lib,'Cli_ConnectTo', obj.s7Ptr,...
-                obj.plcIP, obj.plcRack, obj.plcSlot);
-            
-            if obj.res ~= 0 
-                obj.destroy();
-                error('Couldn''t connect to PLC')
+            if strcmp(obj.status, 'Unconnected')
+                obj.res = calllib(obj.lib,'Cli_ConnectTo', obj.s7Ptr,...
+                    obj.plcIP, obj.plcRack, obj.plcSlot);
+                if obj.res ~= 0 
+                    obj.destroy();
+                    error('Couldn''t connect to PLC')
+                end
+            else
+                disp('Already connected');
             end
         end
         
@@ -285,6 +300,7 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
                    obj.status = 'Connected';
                 end
             elseif ~obj.isInMATLABSystemBlock
+                obj.create();
                 obj.connect();
             end
         end
