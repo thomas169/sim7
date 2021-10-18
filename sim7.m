@@ -105,6 +105,7 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
     end
     
     methods (Access = private)
+        
         function value = lastError(obj)
             obj.libMustBe('Loaded');
             obj.connMustBe('Connected');
@@ -144,26 +145,39 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
             end
         end
         
-        function connect(obj)
+        function create(obj)
             % connect standalone code
             obj.libMustBe('Loaded');
             obj.connMustBe('Unconnected');
             
             obj.s7Ptr = calllib(obj.lib,'Cli_Create');
+            
             if ~(obj.s7Ptr > 0)
-                error('Didn''t create s7 object')
+                error('Could not create s7 object!')
             end
+        end
+        
+        function connect(obj)
+            % connect standalone code
+            obj.libMustBe('Loaded');
+            obj.connMustBe('Unconnected');
             
             obj.res = calllib(obj.lib,'Cli_ConnectTo', obj.s7Ptr,...
                 obj.plcIP, obj.plcRack, obj.plcSlot);
             
             if obj.res ~= 0 
-                calllib(obj.lib,'Cli_Destroy',obj.s7Ptr);
-                obj.s7Ptr = 0;
+                obj.destroy();
                 error('Couldn''t connect to PLC')
             end
         end
         
+        function destroy(obj)
+            obj.libMustBe('Loaded');
+            obj.connMustBe('Connected');
+            calllib(obj.lib,'Cli_Destroy',obj.s7Ptr);
+            obj.s7Ptr = [];
+        end
+
         function disconnect(obj)
             % disconnect standalone code
             obj.libMustBe('Loaded');
@@ -200,7 +214,7 @@ classdef (StrictDefaults) sim7 < matlab.System & ...
             idx = 1;
             for n = 1 : numel(obj.writeDB) 
                 obj.res = calllib(obj.lib,'Cli_WriteArea',obj.s7Ptr,...
-                    obj.areaDB,obj.readDB(n),obj.readPos(n),obj.readSize(n),...
+                    obj.areaDB,obj.writeDB(n),obj.writePos(n),obj.writeSize(n),...
                     obj.wordDB,data(idx));
                 idx = idx + obj.writeSize(n);
             end
